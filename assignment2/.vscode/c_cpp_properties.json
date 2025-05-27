@@ -1,0 +1,18 @@
+{
+    "configurations": [
+      {
+        "name": "Mac",
+        "includePath": [
+          "${workspaceFolder}/**",
+          "/opt/homebrew/include"  // Path to PortAudio headers
+        ],
+        "defines": [],
+        "compilerPath": "/usr/bin/clang",
+        "cStandard": "c11",
+        "cppStandard": "c++17",
+        "intelliSenseMode": "macos-clang-arm64"
+      }
+    ],
+    "version": 4
+  }
+  
