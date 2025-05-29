@@ -118,7 +118,6 @@ int main() {
   std::thread reader(ReadAudioThread,stream);
   std::thread processor(PitchShiftThread);
     
-    
     reader.join();
     processor.join();
 
