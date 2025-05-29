@@ -25,7 +25,7 @@ PaStreamParameters inputParameters, outputParameters;
 PaStream *stream = NULL;
 PaError err;
 
-float pitchShift = 1;
+float pitchShift = 2;
 
  const bool PRINTDEFAULTDEVICEONLY = true;
 // void printDeviceInfo (const PaDeviceInfo* deviceInfo, const char* deviceType, bool printDefaultDevice) {
@@ -86,6 +86,7 @@ int main() {
 
     /* -- start stream -- */
     err = Pa_StartStream(stream);
+    checkErr(err);
 
     float inputBuffer[BUFFER_SIZE];
     float outputBuffer[BUFFER_SIZE];

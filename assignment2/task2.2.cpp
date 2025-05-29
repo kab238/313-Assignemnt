@@ -32,7 +32,7 @@ PaError err;
 
 mutex mutex_thread;
 float outputBuffer[BUFFER_SIZE];
-// iniliases queue of audio buffers (each vector is a vector of float samples)
+// initialises queue of audio buffers (each vector is a vector of float samples)
 std::queue<std::vector<float>> audioQueue; 
 std::condition_variable cond;
 
@@ -47,7 +47,7 @@ static void checkErr(PaError err) {
 void ReadAudioThread(PaStream *stream) {
 
     //*read the input
-    for( int i = 0; i<(NUM_SECONDS*SAMPLE_RATE)/BUFFER_SIZE; i++) { {
+    for( int i = 0; i<(NUM_SECONDS*SAMPLE_RATE)/BUFFER_SIZE; i++) {
         
         //create temporary input vector of float samples
         std::vector<float> inputBuffer(BUFFER_SIZE);
@@ -55,7 +55,7 @@ void ReadAudioThread(PaStream *stream) {
         //reads stream to input vector
         err = Pa_ReadStream(stream,inputBuffer.data(),BUFFER_SIZE);
         checkErr(err);
-
+    {
         // locks the mutex so PitchShiftThread doesn't have access & move input data to queue
         std::lock_guard<std::mutex> lock(mutex_thread);
         audioQueue.push(std::move(inputBuffer));
@@ -117,6 +117,7 @@ int main() {
 
   std::thread reader(ReadAudioThread,stream);
   std::thread processor(PitchShiftThread);
+    
     
     reader.join();
     processor.join();
