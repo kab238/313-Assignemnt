@@ -16,7 +16,6 @@ using namespace std;
 
 #define SAMPLE_RATE       (44100)
 #define FRAMES_PER_BUFFER   (1024)
-#define NUM_SECONDS          (15)
 #define BUFFER_SIZE        (1024)
 #define INPUT_CHANNEL_NO 1
 #define OUTPUT_CHANNEL_NO 1
@@ -31,11 +30,11 @@ PaError err;
 
 mutex mutex_thread,mutex_pitch;
 float outputBuffer[BUFFER_SIZE];
+
 // initialises queue of audio buffers (each vector is a vector of float samples)
 std::queue<std::vector<float>> audioQueue; 
 std::condition_variable cond,pitch_enable;
 
-std::atomic<bool> finishedReading(false);
 std::atomic<bool> stop_requested(false);
 std::atomic<bool> pitch_enabled(false);
 
@@ -49,17 +48,13 @@ static void checkErr(PaError err) {
 void ReadAudioThread(PaStream *stream) {
 
     while (!stop_requested) {
-        cout << "in read audio thread" << endl;
-    //*read the input
-    for( int i = 0; i<(NUM_SECONDS*SAMPLE_RATE)/BUFFER_SIZE; i++) {
-        
+
         //create temporary input vector of float samples
         std::vector<float> inputBuffer(BUFFER_SIZE);
 
         //reads stream to input vector
         err = Pa_ReadStream(stream,inputBuffer.data(),BUFFER_SIZE);
         checkErr(err);
-        if (stop_requested) {return;}
     {
         // locks the mutex so PitchShiftThread doesn't have access & move input data to queue
         std::lock_guard<std::mutex> lock(mutex_thread);
@@ -68,44 +63,31 @@ void ReadAudioThread(PaStream *stream) {
     //notify pitchshift thread that one frame has been read to the shared vector
         cond.notify_one();
     }
-
-    // All samples have finsihed being read, toggle finish flag and notify other thread
-    finishedReading = true;
-    // {std::lock_guard<std::mutex> lock(mutex_thread);
-    // finishedReading = true;
-    // }
-    // cond.notify_one();
-    return;
-}
-cout << "still in read audio thread" << endl;
 }
 
 void PitchShiftThread(){
 
-    while (!stop_requested) {
-        //cout << "in pitch shift thread" << endl;
+    while (1) {
+   
         // gives access to the lock shared by both threads
         std::unique_lock<mutex> lock(mutex_thread);
 
-        //waits to be notified for data to be read
-        cond.wait(lock, [](){return (!audioQueue.empty() || finishedReading);}); // spurious wake up condiiton
+        //waits to be notified for data to be read or if quit comand ha sbeen entered and the audio queue is empty
+        cond.wait(lock, [](){return (!audioQueue.empty() || stop_requested);}); // spurious wake up condiiton
 
-        if (stop_requested) {return;}
+        // exit condition from thread
+        if (stop_requested && audioQueue.empty()) {break;}
 
-        // condiiton for when the duration of time is over
-        if (audioQueue.empty() && finishedReading) {
-            return;
-        }
+        //move data from queue to the input vector
         std::vector<float> input = std::move(audioQueue.front());
-        audioQueue.pop();
+        audioQueue.pop(); // clear audio queue
         lock.unlock();
-    if (pitch_enabled == true) {
-        smbPitchShift(pitchShift,BUFFER_SIZE,FRAMES_PER_BUFFER,OSAMP,SAMPLE_RATE,input.data(),outputBuffer);
+
+    if (pitch_enabled) {
+        smbPitchShift(pitchShift,BUFFER_SIZE,FRAMES_PER_BUFFER,OSAMP,SAMPLE_RATE,input.data(),outputBuffer);\
+    } else { // fills output buffer with zeros to prevent underrun
+        std::fill(outputBuffer, outputBuffer + BUFFER_SIZE, 0.0f);
     }
-        // {   std::unique_lock<std::mutex> pitch_lock(mutex_pitch);
-        //     pitch_enable.wait(pitch_lock);
-            
-        // }
         err = Pa_WriteStream(stream, outputBuffer, BUFFER_SIZE);
         checkErr(err);
     }
@@ -118,14 +100,11 @@ void HotKeyThread() {
     int passthrough_flag = 0;
     
     while(1) {
-        if (finishedReading) {
-            cout << "times run out" << endl;
-            break;}
-        std:cin >> input;
+        std::cin >> input;
+
         //exits the program if 'q' is input
         if (input == 'q') {
             stop_requested = true;
-            finishedReading = true;
             cond.notify_all();
             break;
         }
