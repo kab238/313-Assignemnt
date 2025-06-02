@@ -21,7 +21,7 @@ using namespace std;
 #define INPUT_CHANNEL_NO 1
 #define OUTPUT_CHANNEL_NO 1
 
-const long  OSAMP = 64;
+const long  OSAMP = 32;
 const PaSampleFormat SAMPLE_FORMAT = paFloat32;
 float pitchShift = 2;
 bool finishedReading = false;

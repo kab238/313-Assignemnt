@@ -20,7 +20,7 @@ using namespace std;
 #define INPUT_CHANNEL_NO 1
 #define OUTPUT_CHANNEL_NO 1
 
-const long  OSAMP = 64;
+const long  OSAMP = 32;
 const PaSampleFormat SAMPLE_FORMAT = paFloat32;
 float pitchShift = 1;
 
@@ -52,7 +52,7 @@ void ReadAudioThread(PaStream *stream) {
         //create temporary input vector of float samples
         std::vector<float> inputBuffer(BUFFER_SIZE);
 
-        //reads stream to input vector
+        //reads stream to input vector until it's full
         err = Pa_ReadStream(stream,inputBuffer.data(),BUFFER_SIZE);
         checkErr(err);
     {
@@ -109,8 +109,9 @@ void HotKeyThread() {
             cond.notify_all();
             break;
         }
-        // if 's' is input the pitch shifter is enbaled in the pitchshift thread
+        // if 's' is input the pitch shifter is enabled in the pitchshift thread
         if (input == 's') {
+            passthrough_flag = 0; 
             pitch_enabled = true;
         }
         // if 'p' is input, pass through mode is enabled
@@ -119,11 +120,11 @@ void HotKeyThread() {
             passthrough_flag = 1;  
         }
         //if 'u' is input and the program isn't in passthrough mode add 0.5 units to the pitch shifter
-        if ((input == 'u') && (passthrough_flag == 1)) {
+        if ((input == 'u') && (passthrough_flag == 0)) {
            pitchShift += 0.5;
         }
         //if 'd' is input and the program isn't in passthrough mode decrease 0.5 units from the pitch shifter
-        if ((input == 'd') && (passthrough_flag == 1)) {
+        if ((input == 'd') && (passthrough_flag == 0)) {
             pitchShift -= 0.5;
         }
 }}
