@@ -89,6 +89,7 @@ void PitchShiftThread(){
         audioQueue.pop();
         lock.unlock();
         
+        // output buffer thread safe as it's only modified in one thread
         smbPitchShift(pitchShift,BUFFER_SIZE,FRAMES_PER_BUFFER,OSAMP,SAMPLE_RATE,input.data(),outputBuffer);
         err = Pa_WriteStream(stream, outputBuffer, BUFFER_SIZE);
         checkErr(err);

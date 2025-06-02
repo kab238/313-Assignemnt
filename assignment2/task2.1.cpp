@@ -1,6 +1,4 @@
-//g++ task2.1.cpp -o task2.1 -I/opt/homebrew/include -L/opt/homebrew/lib -lportaudio
 //g++ task2.1.cpp smbPitchShift.cpp -o task2.1 -I/opt/homebrew/include -L/opt/homebrew/lib -lportaudio
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,31 +15,15 @@
 #define INPUT_CHANNEL_NO 1
 #define OUTPUT_CHANNEL_NO 1
 
-const long  OSAMP = 64;
+//initialise paramters 
+const long  OSAMP = 32;
 const PaSampleFormat SAMPLE_FORMAT = paFloat32;
-
 
 PaStreamParameters inputParameters, outputParameters;
 PaStream *stream = NULL;
 PaError err;
 
-float pitchShift = 2;
-
- const bool PRINTDEFAULTDEVICEONLY = true;
-// void printDeviceInfo (const PaDeviceInfo* deviceInfo, const char* deviceType, bool printDefaultDevice) {
-//     if (printDefaultDevice == true) {
-//         std::cout << "Default: " << deviceType << " Device: "<< deviceInfo->name << std::endl;
-
-//     }
-//     else{
-//         std::cout << deviceType << " Device: "<< deviceInfo->name << std::endl;
-//     }
-//         std::cout << "   Input Channels: " << deviceInfo->maxInputChannels << std::endl;
-//         std::cout << "   Input Channels: " << deviceInfo->maxOutputChannels << std::endl;
-//         std::cout << "   Input Channels: " << deviceInfo->defaultSampleRate << std::endl;
-//         std::cout << std::endl;
-    
-// }
+float pitchShift = 1;
 
 static void checkErr(PaError err) {
     if (err != paNoError) {
@@ -51,6 +33,7 @@ static void checkErr(PaError err) {
 }
 
 int main() {
+    
     //initialising portAudio,checking input and output devices
     err = Pa_Initialize();
     checkErr(err);
@@ -62,32 +45,16 @@ int main() {
         Pa_Terminate();
         return -1;
     }
-/*
-    std::cout << "Available audio devices:" << std::endl;
-    for (int i = 0; i < Pa_GetDeviceCount(); ++i) {
-        const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(i);
 
-        if (PRINTDEFAULTDEVICEONLY == true) {
-            if (i == defaultInputDevice) {
-                printDeviceInfo(deviceInfo, "Input", true);
-            }
-
-            if (i == defaultOutputDevice) {
-                printDeviceInfo(deviceInfo,"Output",true);
-            }
-        }
-        else {
-            printDeviceInfo(deviceInfo,"Input", false);
-        }
-    }
-*/
     err = Pa_OpenDefaultStream(&stream, INPUT_CHANNEL_NO, OUTPUT_CHANNEL_NO, SAMPLE_FORMAT, SAMPLE_RATE,FRAMES_PER_BUFFER,nullptr,nullptr);
     checkErr(err);
 
     /* -- start stream -- */
+
     err = Pa_StartStream(stream);
     checkErr(err);
 
+    // initialisation of buffers
     float inputBuffer[BUFFER_SIZE];
     float outputBuffer[BUFFER_SIZE];
 
@@ -95,12 +62,14 @@ int main() {
 
     for( int i = 0; i<(NUM_SECONDS*SAMPLE_RATE)/BUFFER_SIZE; i++) {
         
+        //read stream into input buffer
         err = Pa_ReadStream(stream,inputBuffer,BUFFER_SIZE);
         checkErr(err);
 
         //add pitchshift
         smbPitchShift(pitchShift,BUFFER_SIZE,FRAMES_PER_BUFFER,OSAMP,SAMPLE_RATE,inputBuffer,outputBuffer);
 
+        // write the contents of the output buffer to the stream
         err = Pa_WriteStream(stream, outputBuffer, BUFFER_SIZE);
         checkErr(err);
 

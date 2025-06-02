@@ -104,15 +104,14 @@ void HotKeyThread() {
 
         //exits the program if 'q' is input
         if (input == 'q') {
-            stop_requested = true;
+        // stop_requested is an atomic flag, so when it is changed it notifies the whole program at the same time   
+            stop_requested = true; 
             cond.notify_all();
             break;
         }
         // if 's' is input the pitch shifter is enbaled in the pitchshift thread
         if (input == 's') {
             pitch_enabled = true;
-            // std::lock_guard<std::mutex> pitch_lock(mutex_pitch);
-            // pitch_enable.notify_one();
         }
         // if 'p' is input, pass through mode is enabled
         if (input == 'p') {
@@ -156,7 +155,7 @@ int main() {
     adjustemnt.join();
     reader.join();
     processor.join();
-    cout << "program finished" << endl;
+
     //Stop input and output streams
     err = Pa_StopStream(stream);
     checkErr(err);
